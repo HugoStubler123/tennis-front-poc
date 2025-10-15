@@ -1,0 +1,31 @@
+# venv and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# git & editors
+.git
+.gitignore
+.vscode
+.idea
+
+# local env & notebooks
+.env
+.env.*
+*.ipynb
+
+# large/local data (mount or use GCS instead)
+video/
+data_json/
+*.mp4
+*.mov
+*.avi
+*.png
+*.jpg
+*.jpeg
+
+# misc
+.DS_Store
