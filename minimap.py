@@ -110,7 +110,8 @@ def generate_minimap_video(video_path_input, video_path_output, frames_data, bou
             # Joueurs
             if plot_players:
                 for player_id, player_data in players_data.items():
-                    color = (0, 255, 0) if player_id == '0' else (255, 0, 0)
+                    color = (40, 40, 198) if player_id == '0' else (198, 40, 40)
+                    #color = (0, 255, 0) if player_id == '0' else (255, 0, 0)
                     # Joueur
                     if str(frame_idx) in player_data:
                         x = player_data[str(frame_idx)]['x'] + side_margin

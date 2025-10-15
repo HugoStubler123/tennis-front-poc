@@ -1,0 +1,12 @@
+opencv-python-headless
+pillow
+supervision
+scipy
+streamlit
+imageio-ffmpeg
+moviepy>=1.0.3
+numpy>=1.21.0
+pandas>=1.3.0
+matplotlib>=3.3.0
+pillow>=8.0.0
+supervision>=0.20.0
