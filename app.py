@@ -89,7 +89,7 @@ for key, value in defaults.items():
 # ------------------
 # SIDEBAR CONTROLS
 # ------------------
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/3/3e/Tennis_ball_2.png", width=100)
+st.sidebar.image("quantum.png", width=100)
 st.sidebar.title("🎾 Overlay Options")
 
 st.sidebar.subheader("A. Video Overlays")
