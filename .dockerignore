@@ -17,15 +17,6 @@ __pycache__/
 .env.*
 *.ipynb
 
-# large/local data (mount or use GCS instead)
-video/
-data_json/
-*.mp4
-*.mov
-*.avi
-*.png
-*.jpg
-*.jpeg
 
 # misc
 .DS_Store
