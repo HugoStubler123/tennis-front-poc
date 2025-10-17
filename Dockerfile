@@ -38,5 +38,5 @@
     EXPOSE 8080
     
     # Start Streamlit (bind to 0.0.0.0 and $PORT)
-    CMD ["bash", "-lc", "python -m streamlit run app.py --server.port=${PORT} --server.address=0.0.0.0 --server.headless=true --server.fileWatcherType=none"]
+    CMD ["bash", "-lc", "python -m streamlit run app_v2.py --server.port=${PORT} --server.address=0.0.0.0 --server.headless=true --server.fileWatcherType=none"]
     
