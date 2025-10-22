@@ -1,5 +1,6 @@
 import streamlit as st
 from pathlib import Path
+import os
 from main import dico_bounces, dico_hits, dico_players, dico_trajectories, dico_ball, dico_shots, player_info, smoothed_tracks, frames_data
 from front_video import create_video_front, annotate_video_with_hits_overlay
 from graphs import create_analysis_video
@@ -8,10 +9,17 @@ from table import create_cumulative_stats_video
 from video_assemblage import assemble_four_videos
 
 
-VIDEO_DIR = Path("video")
-VIDEO_DIR.mkdir(exist_ok=True)
+#VIDEO_DIR = Path("video")
+#VIDEO_DIR.mkdir(exist_ok=True)
+
+
+VIDEO_DIR = Path(os.getenv("VIDEO_DIR", "/tmp/video"))
+VIDEO_DIR.mkdir(parents=True, exist_ok=True)
 
 video_input_path = VIDEO_DIR / "input_video.mp4"
+repo_input = Path("video/input_video.mp4")  # if you keep a sample in repo
+if not video_input_path.exists() and repo_input.exists():
+    video_input_path.write_bytes(repo_input.read_bytes())
 
 video_output_path = VIDEO_DIR / "front_overlay.mp4"
 video_intermediate_path = VIDEO_DIR / "annotated_hits_overlay.mp4"

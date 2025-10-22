@@ -1,9 +1,7 @@
 # ---- Base image: Python 3.12 (Debian slim) ----
-    FROM python:3.12-slim 
-# doing modifs 
+    FROM python:3.12-slim
 
-
-    # System deps some libs need (opencv/numpy etc.)
+    # System deps (OpenCV runtime) + ffmpeg for reliable MP4 writing
     RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         libgl1 \
@@ -11,32 +9,35 @@
         libsm6 \
         libxext6 \
         libxrender1 \
-        && rm -rf /var/lib/apt/lists/*
+        ffmpeg \
+     && rm -rf /var/lib/apt/lists/*
     
-    # Python runtime flags
+    # Runtime env
     ENV PYTHONDONTWRITEBYTECODE=1 \
         PYTHONUNBUFFERED=1 \
         STREAMLIT_BROWSER_GATHERUSAGESTATS=false \
-        PORT=8080
+        PORT=8080 \
+        VIDEO_DIR=/tmp/video
     
     # Workdir
     WORKDIR /app
     
-    # Dependencies first (better layer caching)
+    # Dependencies first (layer caching)
     COPY requirements.txt /app/requirements.txt
     RUN pip install --no-cache-dir --upgrade pip \
      && pip install --no-cache-dir -r requirements.txt
+    # Tip: prefer opencv-python-headless in requirements to slim the image
     
-    # Copy the rest of your code
+    # Copy code
     COPY . /app
     
-    # Non-root user (Cloud Run best practice)
-    RUN useradd -m appuser
+    # Non-root user + ensure writable app dir (if you still write under /app)
+    RUN useradd -m appuser && chown -R appuser:appuser /app
     USER appuser
     
-    # Expose for local runs (Cloud Run injects $PORT)
+    # Expose for local debugging (Cloud Run injects $PORT automatically)
     EXPOSE 8080
     
-    # Start Streamlit (bind to 0.0.0.0 and $PORT)
-    CMD ["bash", "-lc", "python -m streamlit run app_v2.py --server.port=${PORT} --server.address=0.0.0.0 --server.headless=true --server.fileWatcherType=none"]
+    # Start Streamlit
+    CMD ["bash", "-lc", "python -m streamlit run app.py --server.port=${PORT} --server.address=0.0.0.0 --server.headless=true --server.fileWatcherType=none"]
     
