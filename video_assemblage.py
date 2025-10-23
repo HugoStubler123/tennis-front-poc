@@ -96,7 +96,7 @@ def assemble_four_videos(
     print(f"✅ Vidéo écrite : {Path(output_path).resolve()}")
 
 
-
+"""
 import os
 import math
 import cv2
@@ -113,16 +113,6 @@ def assemble_four_videos(
     bottom_w_left: int = 1210,
     fourcc: str = "mp4v",   # safer default than 'avc1' in many Linux containers
 ):
-    """
-    Stack up to 4 videos:
-      ┌─────────────────── TOP_H (=1080) ───────────────────┐
-      │  video1 (1920x1080) | optional video2 (500x1080)    │
-      └──────────────────────────────────────────────────────┘
-      ┌────────────────── bottom_h ──────────────────────────┐
-      │ video3 (bottom_w_left x bottom_h) | video4 (rest)    │
-      └──────────────────────────────────────────────────────┘
-    Output size = (W1 + W2, TOP_H [+ bottom_h if bottom row included])
-    """
 
     # --- Layout constants (expected by your pipeline) ---
     TOP_H = 1080
@@ -271,3 +261,4 @@ def assemble_four_videos(
     size_str = f"{outp.stat().st_size/1e6:.2f} MB" if outp.exists() else "NA"
     print(f"✅ Vidéo écrite : {outp} | frames={frames_written} | fps≈{fps:.2f} | size={size_str}")
     return str(outp)
+"""
