@@ -96,7 +96,7 @@ def assemble_four_videos(
     print(f"✅ Vidéo écrite : {Path(output_path).resolve()}")
 
 
-"""
+
 import os
 import math
 import cv2
@@ -261,4 +261,3 @@ def assemble_four_videos(
     size_str = f"{outp.stat().st_size/1e6:.2f} MB" if outp.exists() else "NA"
     print(f"✅ Vidéo écrite : {outp} | frames={frames_written} | fps≈{fps:.2f} | size={size_str}")
     return str(outp)
-"""
