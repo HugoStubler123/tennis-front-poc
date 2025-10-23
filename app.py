@@ -251,7 +251,7 @@ if st.session_state["analysis_created"]:
         with open(final_output_path, "rb") as f:
             video_bytes = f.read()
 
-        st.download_button("🎾 Download Final Video", data=video_bytes, file_name="final_output.mp4")
+        st.download_button("🎾 Download Final Video", data=video_bytes, file_name=final_output_path)
         st.markdown("### 🎬 Final Video Preview")
         st.video(str(final_output_path))
     else:
