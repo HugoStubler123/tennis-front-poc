@@ -110,3 +110,75 @@ def create_analysis_video(dico, player_info, keys_to_plot, output_path="dynamic_
 
     out.release()
     print(f"✅ Saved dynamic analysis video: {output_path}")
+
+
+# --- Cell 1: robust create_analysis_video (AVI -> H.264 MP4) ---
+import os, math, subprocess
+from pathlib import Path
+import cv2
+import numpy as np
+
+def _ensure_parent_dir(p: Path):
+    p.parent.mkdir(parents=True, exist_ok=True)
+
+def _ffmpeg_to_h264(src_path: Path, dst_path: Path) -> None:
+    # Requires `ffmpeg` in your Dockerfile (apt-get install ffmpeg)
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(src_path),
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        str(dst_path),
+    ]
+    subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+def create_analysis_video(dico, player_info, keys_to_plot, output_path="dynamic_graphs.mp4", fps=25, smooth=True):
+    """
+    Writes a temp AVI (MJPG) with OpenCV, then transcodes to H.264 yuv420p MP4.
+    This avoids codec issues on Cloud Run and guarantees browser playback.
+    """
+    # 1) Prepare data and frames
+    data = prepare_data(dico, fps)  # <-- your existing function
+
+    frame_sets = [set(data[player]['frames']) for player in data]
+    common_frames = sorted(set.intersection(*frame_sets))
+    if not common_frames:
+        raise ValueError("No common frames")
+
+    # 2) First frame to determine width/height
+    sample_img_rgb = draw_dynamic_graph(data, player_info, common_frames[0], keys_to_plot, fps, smooth=smooth)  # RGB
+    h, w, _ = sample_img_rgb.shape
+
+    # 3) Output paths
+    output_path = Path(output_path)
+    _ensure_parent_dir(output_path)
+    tmp_avi = output_path.with_suffix(".avi")  # temp container for OpenCV
+
+    # 4) OpenCV writer (MJPG -> highly compatible)
+    mjpg = cv2.VideoWriter_fourcc(*"MJPG")
+    out = cv2.VideoWriter(str(tmp_avi), mjpg, float(fps), (w, h), True)
+    if not out.isOpened():
+        raise RuntimeError("OpenCV VideoWriter failed to open with MJPG. "
+                           "Check permissions and that /tmp is writable on Cloud Run.")
+
+    # 5) Write frames (convert RGB->BGR for OpenCV)
+    for frame_idx in common_frames:
+        frame_img_rgb = draw_dynamic_graph(data, player_info, frame_idx, keys_to_plot, fps, smooth=smooth)
+        frame_bgr = cv2.cvtColor(frame_img_rgb, cv2.COLOR_RGB2BGR)
+        out.write(frame_bgr)
+
+    out.release()
+
+    # 6) Transcode to H.264 yuv420p + faststart (browser-friendly)
+    _ffmpeg_to_h264(tmp_avi, output_path)
+
+    # 7) Clean temp
+    try:
+        tmp_avi.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+    print(f"✅ Saved dynamic analysis video (H.264): {output_path}")
+    return str(output_path)
+
