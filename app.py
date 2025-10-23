@@ -6,7 +6,8 @@ from front_video import create_video_front, annotate_video_with_hits_overlay
 from graphs import create_analysis_video
 from minimap import generate_minimap_video
 from table import create_cumulative_stats_video
-from video_assemblage import assemble_four_videos
+from video_assemblage import assemble_four_videos, fix_final_for_browser
+import json, subprocess
 
 
 #VIDEO_DIR = Path("video")
@@ -128,14 +129,16 @@ st.session_state["show_analytics"] = st.sidebar.checkbox("📊 Show Analytics", 
 st.title("🏟️ Tennis AI Analyser")
 
 # VIDEO PREVIEW
-st.markdown("### 🎥 Original Match Video")
-#if video_input_path.exists():
-#    st.video(str(video_input_path))
-#else:
-#    st.error("Video not found. Please check path: `assets/video.mp4`")
+st.markdown("""
+###### 👋 Welcome to Tennis AI Analyser — an interactive way to explore match data like a coach.  
+###### 🎾 Try switching overlays and analytics in the sidebar — every choice changes your replay!
+            If you're on a phone click on the top left arrows to open the sidebar.
+            The download button appears below the video once the analysis is created. (takes only a minute)
+""", unsafe_allow_html=True)
+
+#st.markdown("### 🎥 Original Match Video")
 
 
-# ------------------
 # STORE PARAMETERS
 # ------------------
 parameters_dico = {
@@ -162,6 +165,35 @@ if st.session_state["show_analytics"]:
     st.markdown("## 📊 Analytics Settings")
     st.session_state["graphics"] = st.multiselect("Choose Graphics to Display", ["Speed", "Distance", "Depth"], default=st.session_state["graphics"])
     st.session_state["table"] = st.multiselect("Choose Tables to Display", ["speed", "shot speed", "shot stats"], default=st.session_state["table"])
+
+st.markdown("### 🎥 Match Video")
+
+if not st.session_state.get("analysis_created", False):
+    # show input before analysis exists
+    if video_input_path.exists() and video_input_path.stat().st_size > 0:
+        st.video(str(video_input_path))
+    else:
+        st.warning("⚠️ Input video not found. Please check your path or upload one.")
+else:
+    # show final preview as soon as it's ready
+    final_p = Path(st.session_state.get("final_path", ""))
+    if final_p.exists() and final_p.stat().st_size > 0:
+        # Fix only once
+        if not st.session_state.get("final_fixed", False):
+            fix_final_for_browser(final_p)              # ensures H.264/yuv420p & even dims
+            st.session_state["final_fixed"] = True
+
+        # Load bytes only once
+        if st.session_state.get("final_bytes") is None:
+            with open(final_p, "rb") as f:
+                st.session_state["final_bytes"] = f.read()
+
+        st.markdown("### 🎬 Final Video Preview")
+        st.video(st.session_state["final_bytes"], format="video/mp4", start_time=0)
+    else:
+        st.warning("⚠️ Processed video not found yet. Try recreating the analysis.")
+# ------------------
+
 
 if st.button("🧠 Create Analysis"):
         # Placeholder for analysis logic
@@ -241,19 +273,48 @@ if st.button("🧠 Create Analysis"):
         
         st.success("Analysis created!")
         st.session_state["analysis_created"] = True
+        st.session_state["final_path"] = str(final_output_path)
+        st.session_state["final_fixed"] = False
+        st.session_state["final_bytes"] = None
 
-# DOWNLOAD + VIDEO
-if st.session_state["analysis_created"]:
+        st.rerun()
+
+
+
+def probe_video(path: Path) -> str:
+    try:
+        out = subprocess.run(
+            ["ffprobe","-v","error","-select_streams","v:0",
+             "-show_entries","stream=codec_name,width,height,pix_fmt,avg_frame_rate,duration",
+             "-of","json", str(path)],
+            capture_output=True, text=True, check=True
+        )
+        info = json.loads(out.stdout)["streams"][0]
+        return f"{path.name} -> codec={info['codec_name']}, {info['width']}x{info['height']}, pix_fmt={info.get('pix_fmt')}, fps={info.get('avg_frame_rate')}, dur={info.get('duration')}"
+    except Exception as e:
+        return f"ffprobe failed: {e}"
+
+#st.write(probe_video(final_output_path))
+
+
+
+
+
+
+
+# ------------------
+# DOWNLOAD
+# ------------------
+if st.session_state.get("analysis_created", False):
     st.markdown("### ⬇️ Download")
-    #st.download_button("🎾 Download Final Video", data=open(final_output_path, "rb"), file_name="final_output.mp4")
 
-    if final_output_path.exists():
-        with open(final_output_path, "rb") as f:
-            video_bytes = f.read()
-
-        st.download_button("🎾 Download Final Video", data=video_bytes, file_name=final_output_path)
-        st.markdown("### 🎬 Final Video Preview")
-        st.video(str(final_output_path))
+    final_bytes = st.session_state.get("final_bytes")
+    if final_bytes:
+        st.download_button(
+            "🎾 Download Final Video",
+            data=final_bytes,
+            file_name="final_output.mp4",
+            mime="video/mp4",
+        )
     else:
-        st.warning("⚠️ Processed video not found. Please ensure the pipeline ran correctly.")
-
+        st.info("Generate the analysis above to enable download.")

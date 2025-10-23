@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from pathlib import Path
+import subprocess
 
 def assemble_four_videos(
     video1_path: str,
@@ -261,3 +262,41 @@ def assemble_four_videos(
     size_str = f"{outp.stat().st_size/1e6:.2f} MB" if outp.exists() else "NA"
     print(f"✅ Vidéo écrite : {outp} | frames={frames_written} | fps≈{fps:.2f} | size={size_str}")
     return str(outp)
+
+
+def fix_final_for_browser(path: Path, target_fps=25):
+    """
+    Re-encode to H.264 + yuv420p, force even dimensions, move moov atom to front.
+    Overwrites the original file.
+    """
+    tmp = path.with_suffix(".fixed.mp4")
+    cmd = [
+        "ffmpeg","-y",
+        "-i", str(path),
+        "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2,setsar=1",
+        "-r", str(target_fps),            # sane CFR for browsers
+        "-c:v","libx264",
+        "-pix_fmt","yuv420p",
+        "-movflags","+faststart",
+        "-preset","veryfast",
+        "-crf","20",
+        "-an",
+        str(tmp)
+    ]
+    subprocess.run(cmd, check=True)
+    tmp.replace(path)
+
+def probe_video(path: Path) -> str:
+    try:
+        out = subprocess.run(
+            ["ffprobe","-v","error","-select_streams","v:0",
+             "-show_entries","stream=codec_name,width,height,pix_fmt,avg_frame_rate,duration",
+             "-of","json", str(path)],
+            capture_output=True, text=True, check=True
+        )
+        info = json.loads(out.stdout)["streams"][0]
+        return f"{path.name} -> codec={info['codec_name']}, {info['width']}x{info['height']}, pix_fmt={info.get('pix_fmt')}, fps={info.get('avg_frame_rate')}, dur={info.get('duration')}"
+    except Exception as e:
+        return f"ffprobe failed: {e}"
+
+#st.write(probe_video(final_output_path))
